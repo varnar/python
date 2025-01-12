@@ -19,3 +19,5 @@ git push -u origin main
 git remote add origin git@github.com:varnar/python.git
 git branch -M main
 git push -u origin main
+
+![image](https://github.com/user-attachments/assets/1cfd3545-ff19-4f8b-bf93-fa2b4e352466)
