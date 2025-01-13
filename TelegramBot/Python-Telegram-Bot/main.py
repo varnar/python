@@ -6,7 +6,7 @@ import telebot
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
 
 # Creating Telebot Object
-bot = telebot.TeleBot('7885897843:AAGJgoCxTtZ-SqeMWmMcoBWMyuyRKFMc5nM')
+bot = telebot.TeleBot('')
 
 # Whenever Starting Bot
 @bot.message_handler(commands=['start', 'hello'])
