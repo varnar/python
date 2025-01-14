@@ -4,13 +4,14 @@ board = [
     [' ', ' ', ' '],
     [' ', ' ', ' ']
 ]
+
 def print_board(board):
-    print('  R0  R1  R2 ')
+    print('   C0  C1  C2 ')
     raw_line = '  ---+---+---'
     print(raw_line)
     count = 0
     for row in board:
-        print(f'C{count} {row[0]} | {row[1]} | {row[2]}')
+        print(f'R{count} {row[0]} | {row[1]} | {row[2]}')
         count += 1
         print(raw_line)
 
@@ -21,40 +22,31 @@ def check_winner(board):
     for column in range(3):
         if board[0][column] == board[1][column] == board[2][column] != ' ':
             return True
-    #check diagonals
+    # check diagonals
     if board[0][0] == board[1][1] == board[2][2] != ' ':
+        return True
+    if board[0][2] == board[1][1] == board[2][0] != ' ':
         return True
     return False
 
 def main():
-    print("Welcome to Tic Tac Toe!")
-    print_board(board)
-
+    # main game loop
     current_player = 'X'
-    while True:
-        print(f"Player {current_player}'s turn")
-        row = int(input("Enter row number (0, 1, 2): "))
-        column = int(input("Enter column number (0, 1, 2): "))  
-
-        if board[row][column] == ' ':  
-            board[row][column] = current_player
-            print_board(board) 
+    for _ in range(9):
+        print_board(board)
+        row = int(input(f"Player {current_player}, enter the row (0, 1, 2): "))
+        col = int(input(f"Player {current_player}, enter the column (0, 1, 2): "))
+        if board[row][col] == ' ':
+            board[row][col] = current_player
+            if check_winner(board):
+                print_board(board)
+                print(f"Player {current_player} wins!")
+                return
+            current_player = 'O' if current_player == 'X' else 'X'
         else:
-            print("This position is already occupied. Try again.")
-            continue
-
-        if check_winner(board):
-            print(f"Player {current_player} wins!")
-            break
-
-        if current_player == 'X':
-            current_player = 'O'
-        else:
-            current_player = 'X'
-
-        if all([cell != ' ' for row in board for cell in row]): 
-            print("It's a tie!")
-            break
+            print("This position is already taken. Try again.")
+    print_board(board)
+    print("It's a draw!")
 
 if __name__ == "__main__":
     main()
