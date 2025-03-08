@@ -1,0 +1,24 @@
+meta {
+  name: GenerateKeys
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{URL}}/keys/generate
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+      "name": "TestNewKey365",
+      "email": "test@example.com",
+      "passphrase": "",
+      "algorithm": "RSAEncryptOrSign",
+      "key_size": 2048,
+      "expiration": 365,
+      "comment": "Test Comment 365",
+      "overwrite": true
+  }
+}

@@ -15,7 +15,6 @@ def put_key(key_id, key):
 def get_key(key_id):
     try:
         response = client.secrets.kv.v2.read_secret_version(path=VAULT_PATH + key_id)
-        print(response)
         return response["data"]["data"].get("key")
     except hvac.exceptions.InvalidPath:
         print(f"Key with id {key_id} does not exist.")
@@ -24,7 +23,6 @@ def get_key(key_id):
 def delete_key(key_id):
     try:
         response = client.secrets.kv.v2.read_secret_version(path=VAULT_PATH + key_id)
-        print(response)
         # Delete the key
         client.secrets.kv.v2.delete_metadata_and_all_versions(path=VAULT_PATH + key_id)
         print(f"Key with id {key_id} deleted.")
@@ -41,36 +39,34 @@ def list_keys(path=VAULT_PATH):
         response = client.secrets.kv.v2.list_secrets(path=path)
     except hvac.exceptions.InvalidRequest:
         print(f"Invalid request: {path}")
-        return {"error": "Invalid request","path":path}, 400
+        return {"error": "Invalid request", "path": path}, 400
     except hvac.exceptions.InvalidPath:
         print(f"Invalid path: {path}")
-        return {"error": "Invalid path or no keys under this path","path":path}, 404
+        return {"error": "Invalid path or no keys under this path", "path": path}, 404
     keys = response["data"].get("keys", [])
     all_keys = []
     for key in keys:
         if key.endswith('/'):
-            all_keys.extend(list_keys(path + key))
+            sub_keys, _ = list_keys(path + key)
+            all_keys.extend(sub_keys)
         else:
             all_keys.append(path + key)
     return all_keys, 200
 
 def generate_key(name, email, passphrase, algorithm="RSAEncryptOrSign", key_size=2048, expiration=None, comment=None):
-    print(expiration)
     expiration = timedelta(days=expiration) if expiration else None
     if expiration:
         print(f"Key will expire in {expiration} days")
     else:
-        expiration = None
         print("Key will not expire")
-    print(f"Key will expire in {expiration} days")
 
     algo = getattr(pgpy.constants.PubKeyAlgorithm, algorithm, pgpy.constants.PubKeyAlgorithm.RSAEncryptOrSign)
     key = pgpy.PGPKey.new(algo, key_size)
     uid = pgpy.PGPUID.new(name, email=email, comment=comment)
     key.add_uid(uid, usage={pgpy.constants.KeyFlags.Sign, pgpy.constants.KeyFlags.EncryptCommunications}, hash_alg=pgpy.constants.HashAlgorithm.SHA256, ciphers=[pgpy.constants.SymmetricKeyAlgorithm.AES256], compression=[pgpy.constants.CompressionAlgorithm.ZLIB], key_expiration=expiration)
-    if not passphrase.isspace:
+    if passphrase and not passphrase.isspace():
         print("Passphrase is provided. Protecting ...")
-        key.protect(passphrase,pgpy.constants.SymmetricKeyAlgorithm.AES256,pgpy.constants.HashAlgorithm.SHA256)
+        key.protect(passphrase, pgpy.constants.SymmetricKeyAlgorithm.AES256, pgpy.constants.HashAlgorithm.SHA256)
     else:
         print("The key is not protected with passphrase as it has not been provided")
     with key.unlock(passphrase):

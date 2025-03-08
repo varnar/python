@@ -1,9 +1,16 @@
-from flask import Flask, request, jsonify,copy_current_request_context
+from flask import Flask, request, jsonify, copy_current_request_context
 from functions import put_key, get_key, delete_key, list_keys, generate_key, encrypt_message, decrypt_message
 import threading
-import time
+import json
+import os
+from werkzeug.utils import secure_filename
+
 
 app = Flask(__name__)
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # Limit file size to 16 MB
+UPLOAD_FOLDER = '/home/ubuntu/code/gpgserver/uploads'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 @app.route("/keys/get/<key_id>", methods=["GET"])
 def get_key_api(key_id):
@@ -21,6 +28,45 @@ def get_key_api(key_id):
     if not result["key"]:
         return jsonify({"error": "Key not found"}), 404
     return jsonify({"key": result["key"]})
+
+@app.route("/keys/upload", methods=["POST"])
+def upload_key():
+    result = {}
+
+    @copy_current_request_context
+    def upload_key_thread():
+        data1 = request.get_data().decode('utf-8').strip()
+        print(data1)
+        try:
+            data = request.get_json()
+        except Exception as e:
+            print(e)
+            result["error"] = "Invalid JSON format provided"
+            result["status_code"] = 400
+            return
+        overwrite = data.get("overwrite", False)
+        # Check if keys already exist
+        if not overwrite:
+            existing_key = get_key(data["name"])
+            if existing_key:
+                # Keys already exist, return error
+                result["error"] = "The key already exist"
+                result["status_code"] = 409
+                return
+        # Upload new keys        
+        key_name = data["name"]
+        key_value = data["key"]
+        put_key(key_name, key_value)
+        result["message"] = "Key uploaded successfully"
+        result["status_code"] = 200
+
+    thread = threading.Thread(target=upload_key_thread)
+    thread.start()
+    thread.join()
+
+    if "error" in result:
+        return jsonify({"error": result["error"]}), result["status_code"]
+    return jsonify({"message": result["message"]})
 
 @app.route("/keys/generate", methods=["POST"])
 def generate_keys():
@@ -145,3 +191,73 @@ def decrypt_api():
     if "error" in result:
         return jsonify({"error": result["error"]}), result["status_code"]
     return jsonify({"decrypted_message": result["decrypted_message"]})
+
+@app.route("/encrypt_file", methods=["POST"])
+def encrypt_file_api():
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part"}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+    if file:
+        filename = secure_filename(file.filename)
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(file_path)
+        
+        result = {}
+
+        @copy_current_request_context
+        def encrypt_file_thread():
+            with open(file_path, 'r') as f:
+                file_content = f.read()
+            public_key = get_key(request.form['id'] + "-public")
+            if not public_key:
+                result["error"] = "Public key not found"
+                result["status_code"] = 404
+                return
+            encrypted_message = encrypt_message(public_key, file_content)
+            result["encrypted_message"] = encrypted_message
+            result["status_code"] = 200
+
+        thread = threading.Thread(target=encrypt_file_thread)
+        thread.start()
+        thread.join()
+
+        if "error" in result:
+            return jsonify({"error": result["error"]}), result["status_code"]
+        return jsonify({"encrypted_message": result["encrypted_message"]})
+
+@app.route("/decrypt_file", methods=["POST"])
+def decrypt_file_api():
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part"}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+    if file:
+        filename = secure_filename(file.filename)
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(file_path)
+        
+        result = {}
+
+        @copy_current_request_context
+        def decrypt_file_thread():
+            with open(file_path, 'r') as f:
+                encrypted_message = f.read()
+            private_key = get_key(request.form['id'] + "-private")
+            if not private_key:
+                result["error"] = "Private key not found"
+                result["status_code"] = 404
+                return
+            decrypted_message = decrypt_message(private_key, request.form['passphrase'], encrypted_message)
+            result["decrypted_message"] = decrypted_message
+            result["status_code"] = 200
+
+        thread = threading.Thread(target=decrypt_file_thread)
+        thread.start()
+        thread.join()
+
+        if "error" in result:
+            return jsonify({"error": result["error"]}), result["status_code"]
+        return jsonify({"decrypted_message": result["decrypted_message"]})
