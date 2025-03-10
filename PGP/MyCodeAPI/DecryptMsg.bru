@@ -1,0 +1,18 @@
+meta {
+  name: DecryptMsg
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{URL}}/encrypt
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+      "key-id": "TestNewKey365-public",
+      "message":"This is testing to enc file\nNew line"
+  }
+}

@@ -1,0 +1,16 @@
+meta {
+  name: EncryptFile
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{URL}}/encrypt/file
+  body: multipartForm
+  auth: none
+}
+
+body:multipart-form {
+  id: TestNewKey365
+  file: @file(code/gpgserver/PGP_GPG_Test.txt) @contentType(text/plain)
+}

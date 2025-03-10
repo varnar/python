@@ -1,0 +1,279 @@
+swagger: "2.0"
+info:
+  description: "API for managing GPG keys and encrypting/decrypting messages."
+  version: "1.0.0"
+  title: "GPG Server API"
+host: "localhost:8080"
+basePath: "/"
+schemes:
+  - "http"
+paths:
+  /keys/get/{key_id}:
+    get:
+      summary: "Retrieve a GPG key by its ID."
+      parameters:
+        - name: "key_id"
+          in: "path"
+          required: true
+          type: "string"
+      responses:
+        200:
+          description: "Key retrieved successfully."
+          schema:
+            type: "object"
+            properties:
+              key:
+                type: "string"
+        404:
+          description: "Key not found."
+          schema:
+            type: "object"
+            properties:
+              error:
+                type: "string"
+  /keys/upload:
+    post:
+      summary: "Upload a new GPG key."
+      parameters:
+        - name: "body"
+          in: "body"
+          required: true
+          schema:
+            type: "object"
+            properties:
+              name:
+                type: "string"
+              key:
+                type: "string"
+              overwrite:
+                type: "boolean"
+      responses:
+        200:
+          description: "Key uploaded successfully."
+          schema:
+            type: "object"
+            properties:
+              message:
+                type: "string"
+        400:
+          description: "Invalid JSON format provided."
+          schema:
+            type: "object"
+            properties:
+              error:
+                type: "string"
+        409:
+          description: "The key already exists."
+          schema:
+            type: "object"
+            properties:
+              error:
+                type: "string"
+  /keys/generate:
+    post:
+      summary: "Generate a new GPG key pair."
+      parameters:
+        - name: "body"
+          in: "body"
+          required: true
+          schema:
+            type: "object"
+            properties:
+              name:
+                type: "string"
+              email:
+                type: "string"
+              passphrase:
+                type: "string"
+              algorithm:
+                type: "string"
+              key_size:
+                type: "integer"
+              expiration:
+                type: "string"
+              comment:
+                type: "string"
+              overwrite:
+                type: "boolean"
+      responses:
+        200:
+          description: "Keys generated and stored."
+          schema:
+            type: "object"
+            properties:
+              message:
+                type: "string"
+              publicKey:
+                type: "string"
+              fingerprint:
+                type: "string"
+        409:
+          description: "Keys already exist."
+          schema:
+            type: "object"
+            properties:
+              error:
+                type: "string"
+  /keys/list:
+    get:
+      summary: "List all GPG keys."
+      responses:
+        200:
+          description: "Keys listed successfully."
+          schema:
+            type: "object"
+            properties:
+              keys:
+                type: "array"
+                items:
+                  type: "string"
+        500:
+          description: "Error listing keys."
+          schema:
+            type: "object"
+            properties:
+              error:
+                type: "string"
+  /keys/delete/{key_id}:
+    delete:
+      summary: "Delete a GPG key by its ID."
+      parameters:
+        - name: "key_id"
+          in: "path"
+          required: true
+          type: "string"
+      responses:
+        200:
+          description: "Key deleted successfully."
+          schema:
+            type: "object"
+            properties:
+              message:
+                type: "string"
+              data:
+                type: "string"
+        404:
+          description: "Key not found."
+          schema:
+            type: "object"
+            properties:
+              error:
+                type: "string"
+  /encrypt/message:
+    post:
+      summary: "Encrypt a message using a public key."
+      parameters:
+        - name: "body"
+          in: "body"
+          required: true
+          schema:
+            type: "object"
+            properties:
+              key-id:
+                type: "string"
+              message:
+                type: "string"
+      responses:
+        200:
+          description: "Message encrypted successfully."
+          schema:
+            type: "object"
+            properties:
+              encrypted_message:
+                type: "string"
+        404:
+          description: "Public key not found."
+          schema:
+            type: "object"
+            properties:
+              error:
+                type: "string"
+  /decrypt/message:
+    post:
+      summary: "Decrypt a message using a private key."
+      parameters:
+        - name: "body"
+          in: "body"
+          required: true
+          schema:
+            type: "object"
+            properties:
+              key-id:
+                type: "string"
+              passphrase:
+                type: "string"
+              encrypted_message:
+                type: "string"
+      responses:
+        200:
+          description: "Message decrypted successfully."
+          schema:
+            type: "object"
+            properties:
+              decrypted_message:
+                type: "string"
+        404:
+          description: "Private key not found."
+          schema:
+            type: "object"
+            properties:
+              error:
+                type: "string"
+  /encrypt/file:
+    post:
+      summary: "Encrypt a file using a public key."
+      parameters:
+        - name: "file"
+          in: "formData"
+          required: true
+          type: "file"
+        - name: "id"
+          in: "formData"
+          required: true
+          type: "string"
+      responses:
+        200:
+          description: "File encrypted successfully."
+          schema:
+            type: "object"
+            properties:
+              encrypted_message:
+                type: "string"
+        404:
+          description: "Public key not found."
+          schema:
+            type: "object"
+            properties:
+              error:
+                type: "string"
+  /decrypt/file:
+    post:
+      summary: "Decrypt a file using a private key."
+      parameters:
+        - name: "file"
+          in: "formData"
+          required: true
+          type: "file"
+        - name: "id"
+          in: "formData"
+          required: true
+          type: "string"
+        - name: "passphrase"
+          in: "formData"
+          required: true
+          type: "string"
+      responses:
+        200:
+          description: "File decrypted successfully."
+          schema:
+            type: "object"
+            properties:
+              decrypted_message:
+                type: "string"
+        404:
+          description: "Private key not found."
+          schema:
+            type: "object"
+            properties:
+              error:
+                type: "string"
